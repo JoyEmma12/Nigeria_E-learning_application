@@ -58,7 +58,7 @@ const Login = () => {
         <div className="Login-contents p-4" data-aos="fade-in">
           <form onSubmit={handleLogin}>
             <header className="form-header p-1" data-aos="fade-down">
-              <h2 className="fs-4">Nigeria Lingua</h2>
+              <h2 className="fs-3 p-1">Nigeria Lingua</h2>
               <h3 className="mt-3">Welcome Back!</h3>
               <p className="mt-4">
                 Log into your account and continue your language-learning

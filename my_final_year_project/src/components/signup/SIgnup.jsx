@@ -83,7 +83,7 @@ const Signup = () => {
         <div className="Login-contents p-4">
           <form onSubmit={handleSignup}>
             <header className="form-header p-1">
-              <h2 className=" fs-4">Nigeria Lingua</h2>
+              <h2 className=" fs-3">Nigeria Lingua</h2>
               <h3 className="mt-3">Create Your Free Account</h3>
               <p className="mt-4">
                 Join our community and start learning Nigerian indigenous
