@@ -25,6 +25,7 @@ const Login = () => {
   };
 
   const handleLoginInput = (e) => {
+
     const { name, value } = e.target;
     setLoginSetup({ ...loginSetup, [name]: value });
   };
@@ -32,7 +33,7 @@ const Login = () => {
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch("http://127.0.0.1:5000/login", {
+      const res = await fetch("https://glorious-lamp-45gw674xjwr3qq5w-5000.app.github.dev/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(loginSetup),
