@@ -1,79 +1,104 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { lessons } from "./LanguageLessons";
+import { FaFire, FaBolt } from "react-icons/fa";
+import Layout from "../Layout";
+import { Languages } from "../../signup/Languages";
+import { useAuth } from "../../../Auth/AuthContext";
+import { get } from "../../../api";
+import { useStats } from "../../../lib/stats";
 import "./LessonLangScreen.css";
-import AOS from "aos";
-import "aos/dist/aos.css";
 
-const LessonLangScreen = () => {
-  const [progress, setProgress] = useState({});
+// Sample greetings. Have native speakers confirm them before release.
+const HELLO = {
+  yoruba: ["Ẹ káàbọ̀", "Welcome"],
+  igbo: ["Nnọọ", "Welcome"],
+  hausa: ["Barka da zuwa", "Welcome"],
+  efik: ["Sosongo", "Thank you"],
+  ibibio: ["Sosongo", "Thank you"],
+};
+const isDone = (s) => /complet|done|pass/i.test(s);
+const storedUser = () => {
+  try { return JSON.parse(localStorage.getItem("user")); } catch { return null; }
+};
+
+export default function LessonLangScreen() {
   const navigate = useNavigate();
-  const username = JSON.parse(localStorage.getItem("user"))?.username;
+  const { user } = useAuth();
+  const username = user?.name || storedUser()?.username || "";
+  const { stats, error } = useStats(username);
+  const [progress, setProgress] = useState({});
+  const [last, setLast] = useState("");
 
   useEffect(() => {
-    AOS.init({ duration: 1000 });
-    const fetchProgress = async () => {
-      if (username) {
-        const res = await fetch(`http://127.0.0.1:5000/progress/${username}`);
-        const data = await res.json();
-        setProgress(data);
-      }
-    };
-    fetchProgress();
+    try { setLast((localStorage.getItem("selectedLanguage") || "").toLowerCase()); } catch {}
+  }, []);
+
+  useEffect(() => {
+    if (!username) return;
+    get("/progress/" + encodeURIComponent(username)).then(setProgress).catch(() => setProgress({}));
   }, [username]);
 
-  const flags = {
-    Igbo: "🟢",
-    Yoruba: "🟣",
-    Hausa: "🟤",
-    Efik: "🟠",
-    Ibibio: "🔵",
+  // progress keys may be saved as "Yoruba" or "yoruba", so match without case
+  const countsFor = (language) => {
+    const entry = Object.entries(progress).find(([k]) => k.toLowerCase() === language.toLowerCase());
+    const all = entry ? Object.values(entry[1]) : [];
+    const done = all.filter(isDone).length;
+    return { done, doing: all.length - done, started: all.length > 0 };
   };
 
-  return (
-    <div className="lesson-screen-container">
-      <button className="back-btn mb-4" onClick={() => navigate("/dashboard")}>
-        ⬅ Back to Dashboard
-      </button>
-      <h2 className="text-center">📚 All Language Lessons</h2>
-      <div className="row mt-4 g-4 justify-content-center container-fluid">
-        {Object.keys(lessons).map((language, idx) => {
-          const total = Object.keys(lessons[language]).length;
-          const completed = progress[language]
-            ? Object.values(progress[language]).filter((s) => s === "completed")
-                .length
-            : 0;
-          const percentage = total ? Math.round((completed / total) * 100) : 0;
+  function choose(language) {
+    const key = language.toLowerCase();
+    try {
+      localStorage.setItem("selectedLanguage", language);
+      localStorage.setItem("lang", key);
+    } catch {}
+    document.documentElement.dataset.lang = key;
+    navigate(`/lesson/${language}`);
+  }
 
+  return (
+    <Layout>
+      <header className="ll-head">
+        <h1>Choose a language</h1>
+        <p>Pick one language to learn. You can switch any time, and your progress is saved for each one.</p>
+        {stats && !error && (
+          <div className="ll-pills">
+            <span className="ll-pill"><FaFire aria-hidden="true" /> {stats.streak}-day streak</span>
+            <span className="ll-pill"><FaBolt aria-hidden="true" /> {stats.xp.toLocaleString()} XP</span>
+          </div>
+        )}
+      </header>
+
+      <div className="ll-grid">
+        {Languages.map(({ id, language, text, image }, i) => {
+          const key = language.toLowerCase();
+          const { done, doing, started } = countsFor(language);
+          const [word, meaning] = HELLO[key] || ["", ""];
           return (
-            <div
-              key={language}
-              className="col-12 col-sm-6 col-md-4 col-lg-4"
-              data-aos="zoom-in-up"
-              data-aos-delay={idx * 100}>
-              <div className="language-card">
-                <div className="lang-header">
-                  <span className="flag">{flags[language] || "🌍"}</span>
-                  <h3>{language}</h3>
+            <article key={id} className={`ll-card ${key}${last === key ? " last" : ""}`} style={{ animationDelay: `${i * 70}ms` }}>
+              <div className="ll-band">
+                <div>
+                  {last === key && <span className="ll-badge">Last learned</span>}
+                  <h2>{language}</h2>
+                  {word && <p className="ll-hello">{word} <span>· {meaning}</span></p>}
                 </div>
-                <p>
-                  {completed} of {total} lessons completed
+                {image && <img src={image} alt="" className="ll-img" />}
+              </div>
+              <div className="ll-body">
+                <p className="ll-text">{text}</p>
+                <p className="ll-count">
+                  {started
+                    ? `${done} lesson${done === 1 ? "" : "s"} completed${doing > 0 ? `, ${doing} in progress` : ""}`
+                    : "New to you"}
                 </p>
-                <div className="progress-bar-wrapper">
-                  <div
-                    className="progress-bar-filled"
-                    style={{ width: `${percentage}%` }}></div>
-                </div>
-                <button onClick={() => navigate(`/lesson/${language}`)}>
-                  View Lessons
+                <button className="ll-btn" onClick={() => choose(language)} aria-label={`${started ? "Continue" : "Start"} learning ${language}`}>
+                  {started ? "Continue learning" : "Start learning"}
                 </button>
               </div>
-            </div>
+            </article>
           );
         })}
       </div>
-    </div>
+    </Layout>
   );
-};
-
-export default LessonLangScreen;
+}
